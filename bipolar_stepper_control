@@ -1,0 +1,76 @@
+//Bipolar stepper motor control_2.0
+
+//This code run NEMA17 stepper motor in forward and 
+//backward direction. It read forward/backward angle
+//from the 'telnet' and rotate stepper at that angle 
+//precisely.In this code, half step drive mode is used.
+
+//Notes:
+//50 steps = 360 degree
+//360 degree = 8 mm(pitch)
+ 
+#include <Bridge.h>
+#include <BridgeServer.h>
+#include <BridgeClient.h>
+#include <Process.h>
+#include<Servo.h>
+
+#define BAUDRATE 115200
+#define DEBUG
+const String PING_MSG = "SOCKET_PING";
+const String CONNECTED_MSG = "SOCKET_CONNECTED";
+const int port = 2333;
+
+BridgeServer server(port);
+
+const int IN1 = 8;
+const int IN2 = 9;
+const int IN3 = 10;
+const int IN4 = 11;
+
+#include "bipolar_stepper.h"
+
+void setup() {
+  Serial.begin(BAUDRATE);
+  Bridge.begin();
+  server.begin();
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  // put your setup code here, to run once:
+}
+void loop() {
+  BridgeClient client = server.accept();
+  if (client) client.println(CONNECTED_MSG);
+  if (!client) {shutdown_stepper();Serial.println("client NOT connected");}
+  
+  char c;
+  int serialData;
+  while (client.connected())
+  {  
+    if(client.available())
+      c = client.read();
+    if (c == 'f')
+    {
+      clk_step_half(client.parseInt());
+      shutdown_stepper();
+      client.flush();
+      c= '\0';
+    }
+    if (c == 'b')
+    {
+      anti_step_half(client.parseInt());
+      shutdown_stepper();
+      client.flush();
+      c= '\0';
+    }
+
+    //add your code here.....
+
+  }
+}
